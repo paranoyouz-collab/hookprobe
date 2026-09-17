@@ -8,7 +8,11 @@ written against my own reading of the schema.
 
 from hookprobe.checks import analyze, check_config
 from hookprobe.loader import load
-from tests.conftest import codes
+
+
+def codes(items) -> set[str]:
+    """Finding codes from a list of findings."""
+    return {f.code for f in items}
 
 
 def run(path, project_dir=None):

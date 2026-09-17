@@ -26,7 +26,3 @@ def one_hook(settings):
         return settings({event: [entry]})
 
     return _write
-
-
-def codes(items) -> set[str]:
-    return {f.code for f in items}
