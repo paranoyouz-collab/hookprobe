@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pytest
+      - name: Test
+        run: pytest -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: check
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check
+
+  dogfood:
+    # The exit contract is the part CI can regress without any unit test
+    # noticing, so assert it directly on a clean and a broken config.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - name: Valid config exits zero
+        run: |
+          mkdir -p /tmp/good
+          echo '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo hi","timeout":10}]}]}}' > /tmp/good/settings.json
+          hookprobe /tmp/good/settings.json
+      - name: Broken config exits non-zero
+        run: |
+          mkdir -p /tmp/bad
+          echo '{"hooks":{"PreToolCall":[{"hooks":[{"type":"command","command":"x"}]}]}}' > /tmp/bad/settings.json
+          if hookprobe /tmp/bad/settings.json; then echo "expected failure"; exit 1; fi
