@@ -1,7 +1,11 @@
 import json
 
 from hookprobe.loader import discover, load
-from tests.conftest import codes
+
+
+def codes(items) -> set[str]:
+    """Finding codes from a list of findings."""
+    return {f.code for f in items}
 
 
 def test_reads_a_hook(one_hook):
